@@ -229,15 +229,21 @@
 // ---------- Google Apps Script web app: shared counter + live news ----------
 var VIDYA_API = 'https://script.google.com/macros/s/AKfycby15e2Sgt8qfY1ohyHb001lQhnS1FeUssBnKpIQE1CF3C_lkBzRBlsu_aC7kDxL8phc_Q/exec';
 var vidyaFeedP = null, vidyaFeedAt = 0;
+// Gives up waiting after `ms`. (Deliberately not an AbortSignal: some viewers and wrappers cannot forward that to fetch.)
+function withTimeout(promise, ms) {
+  return new Promise(function (resolve, reject) {
+    var t = setTimeout(function () { reject(new Error('no answer after ' + Math.round(ms / 1000) + ' seconds')); }, ms);
+    promise.then(function (v) { clearTimeout(t); resolve(v); }, function (e) { clearTimeout(t); reject(e); });
+  });
+}
 // News and Main Events are read through the Apps Script, which fetches them from news.vidyaacademy.ac.in on Google's servers.
 // (A page opened as a file cannot read the news site directly because the browser blocks it.)
 function vidyaFeed() {
   if (!VIDYA_API) return Promise.reject(new Error('VIDYA_API is empty'));
   if (vidyaFeedP && Date.now() - vidyaFeedAt < 60000) return vidyaFeedP;      // both panels share one request
   vidyaFeedAt = Date.now();
-  var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 25000);
-  vidyaFeedP = fetch(VIDYA_API + '?news=1', ctl ? { signal: ctl.signal } : {})
-    .then(function (r) { clearTimeout(t); return r.text(); })
+  vidyaFeedP = withTimeout(fetch(VIDYA_API + '?news=1'), 25000)
+    .then(function (r) { return r.text(); })
     .then(function (txt) {
       var o; try { o = JSON.parse(txt); } catch (e) { throw new Error('the Apps Script did not return news data (it needs to be authorized and deployed as a new version)'); }
       if (o && o.day != null && !o.news) throw new Error('the Apps Script is still the old version (Deploy > Manage deployments > New version)');
@@ -597,8 +603,7 @@ document.getElementById('stage').addEventListener('dblclick', function () {
     });
   }
   function load(url) {
-    var ctl = window.AbortController ? new AbortController() : null, timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
-    return fetch(url, ctl ? { signal: ctl.signal } : {}).then(function (r) { clearTimeout(timer); if (!r.ok) throw 0; return r.json(); });
+    return withTimeout(fetch(url), 15000).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   }
   function setLive(on, why) { var b = document.getElementById('newsLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); b.title = on ? 'Loaded from the news website just now' : 'Could not load live news: ' + (why || 'unknown reason'); } }
   function applyLive(got) {
@@ -701,8 +706,7 @@ document.getElementById('stage').addEventListener('dblclick', function () {
   }
   function plain(html) { var x = document.createElement('textarea'); x.innerHTML = html; return x.value; }
   function load(url) {
-    var ctl = window.AbortController ? new AbortController() : null, timer2 = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
-    return fetch(url, ctl ? { signal: ctl.signal } : {}).then(function (r) { clearTimeout(timer2); if (!r.ok) throw 0; return r.json(); });
+    return withTimeout(fetch(url), 15000).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   }
   function api(path, query) {                                                   // pretty and plain WordPress addresses
     return load(BASE + 'wp-json' + path + '?' + query).catch(function () { return load(BASE + '?rest_route=' + path + '&' + query); });
