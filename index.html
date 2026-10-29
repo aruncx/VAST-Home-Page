@@ -237,8 +237,13 @@ function vidyaFeed() {
   vidyaFeedAt = Date.now();
   var ctl = window.AbortController ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 25000);
   vidyaFeedP = fetch(VIDYA_API + '?news=1', ctl ? { signal: ctl.signal } : {})
-    .then(function (r) { clearTimeout(t); return r.json(); })
-    .then(function (o) { if (!o || !o.news || !o.news.length) throw new Error((o && o.error) || 'empty reply'); return o; });
+    .then(function (r) { clearTimeout(t); return r.text(); })
+    .then(function (txt) {
+      var o; try { o = JSON.parse(txt); } catch (e) { throw new Error('the Apps Script did not return news data (it needs to be authorized and deployed as a new version)'); }
+      if (o && o.day != null && !o.news) throw new Error('the Apps Script is still the old version (Deploy > Manage deployments > New version)');
+      if (!o || !o.news || !o.news.length) throw new Error('the Apps Script could not read the news site: ' + ((o && o.error) || 'empty reply'));
+      return o;
+    });
   vidyaFeedP.catch(function () { vidyaFeedP = null; });
   return vidyaFeedP;
 }
@@ -595,23 +600,26 @@ document.getElementById('stage').addEventListener('dblclick', function () {
     var ctl = window.AbortController ? new AbortController() : null, timer = setTimeout(function () { if (ctl) ctl.abort(); }, 15000);
     return fetch(url, ctl ? { signal: ctl.signal } : {}).then(function (r) { clearTimeout(timer); if (!r.ok) throw 0; return r.json(); });
   }
-  function setLive(on) { var b = document.getElementById('newsLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); } }
+  function setLive(on, why) { var b = document.getElementById('newsLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); b.title = on ? 'Loaded from the news website just now' : 'Could not load live news: ' + (why || 'unknown reason'); } }
   function applyLive(got) {
     got = got.filter(function (x) { return x.l && x.l.indexOf(BASE) === 0 && x.t; });
     if (!got.length) throw new Error('nothing usable');
     items = got; render(); setLive(true);
     try { localStorage.setItem(CACHE, JSON.stringify(got)); } catch (e) {}
   }
+  var why = '';
   function refresh() {
+    why = '';
     vidyaFeed()
       .then(function (o) { return o.news.map(function (x) { return { t: plain(x.t || ''), l: x.l, d: x.d, i: x.i }; }); })
-      .catch(function () {                                                    // no Apps Script reply: ask the site directly (works when hosted online)
+      .catch(function (e1) {                                                  // no Apps Script reply: ask the site directly (works when hosted online)
+        why = e1 && e1.message || String(e1);
         return load(BASE + 'wp-json/wp/v2/posts?per_page=' + MAX_ITEMS + '&_embed=wp:featuredmedia')
           .catch(function () { return load(BASE + '?rest_route=/wp/v2/posts&per_page=' + MAX_ITEMS + '&_embed=wp:featuredmedia'); })
           .then(parse);
       })
       .then(applyLive)
-      .catch(function (err) { setLive(false); if (window.console) console.warn('Vidya News: showing the saved copy,', err); });
+      .catch(function (err) { setLive(false, why || (err && err.message)); if (window.console) console.warn('Vidya News: showing the saved copy,', why || err); });
   }
   try { var c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c && c.length) items = c; } catch (e) {}
   render();
@@ -707,26 +715,29 @@ document.getElementById('stage').addEventListener('dblclick', function () {
       return { t: plain(p.title && p.title.rendered || ''), l: p.link, i: m && m.source_url || '', d: p.date, c: cat };
     });
   }
-  function setLive(on) { var b = document.getElementById('evLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); } }
+  function setLive(on, why) { var b = document.getElementById('evLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); b.title = on ? 'Loaded from the news website just now' : 'Could not load live events: ' + (why || 'unknown reason'); } }
   function applyLive(got) {
     got = got.filter(function (x) { return x.l && x.l.indexOf(BASE) === 0 && x.t; });
     if (!got.length) throw new Error('nothing usable');
     items = got; render(); setLive(true);
     try { localStorage.setItem(CACHE, JSON.stringify(got)); } catch (e) {}
   }
+  var why = '';
   function refresh() {
+    why = '';
     vidyaFeed()
       .then(function (o) {
         if (!o.events || !o.events.length) throw new Error('no featured posts');
         return o.events.map(function (x) { return { t: plain(x.t || ''), l: x.l, d: x.d, i: x.f || x.i, c: x.c ? plain(x.c) : 'Featured' }; });
       })
-      .catch(function () {                                                    // no Apps Script reply: ask the site directly (works when hosted online)
+      .catch(function (e1) {                                                  // no Apps Script reply: ask the site directly (works when hosted online)
+        why = e1 && e1.message || String(e1);
         return api('/wp/v2/categories', 'slug=pub&_fields=id')
           .then(function (c) { if (!c || !c[0]) throw new Error('no Featured category'); return api('/wp/v2/posts', 'categories=' + c[0].id + '&per_page=' + COUNT + '&_embed'); })
           .then(parse);
       })
       .then(applyLive)
-      .catch(function (err) { setLive(false); if (window.console) console.warn('Main Events: showing the saved copy,', err); });
+      .catch(function (err) { setLive(false, why || (err && err.message)); if (window.console) console.warn('Main Events: showing the saved copy,', why || err); });
   }
   panel.addEventListener('mouseenter', function () { paused = true; });
   panel.addEventListener('mouseleave', function () { paused = false; });
