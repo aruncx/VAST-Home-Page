@@ -131,6 +131,9 @@
               -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 8px, #000 calc(100% - 14px), transparent 100%);
               mask-image:linear-gradient(to bottom, transparent 0, #000 8px, #000 calc(100% - 14px), transparent 100%); }
   #newsList::-webkit-scrollbar { display:none; }
+  .nimg { width:76px; height:54px; flex:none; border-radius:10px; overflow:hidden; background:rgba(255,255,255,.15) center / 26px no-repeat; }
+  .nimg img { width:100%; height:100%; object-fit:cover; display:block; border-radius:0; background:none; }
+  .nimg.ph { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffd9a0' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2'/%3E%3Cpath d='M18 14h-8'/%3E%3Cpath d='M15 18h-5'/%3E%3Cpath d='M10 6h8v4h-8V6Z'/%3E%3C/svg%3E"); }
 </style>
 </head>
 <body>
@@ -233,6 +236,21 @@
 // ---------- Google Apps Script web app: shared counter + live news ----------
 var VIDYA_API = 'https://script.google.com/macros/s/AKfycby15e2Sgt8qfY1ohyHb001lQhnS1FeUssBnKpIQE1CF3C_lkBzRBlsu_aC7kDxL8phc_Q/exec';
 var vidyaFeedP = null, vidyaFeedAt = 0;
+// Pictures from the news site: accept the site itself and its image CDN, upgrade http to https, try several sizes in turn.
+function picOk(u) {
+  try { var x = new URL(u); return x.protocol === 'https:' && (/(^|\.)vidyaacademy\.ac\.in$/.test(x.hostname) || /^i\d\.wp\.com$/.test(x.hostname)); }
+  catch (e) { return false; }
+}
+function picList(arr) {
+  var out = [];
+  arr.forEach(function (u) { u = u && String(u).replace(/^http:\/\//, 'https://'); if (u && picOk(u) && out.indexOf(u) < 0) out.push(u); });
+  return out;
+}
+// Loads the first picture that works; calls fail() if none does.
+function loadPic(im, urls, fail) {
+  var next = function () { var u = urls.shift(); if (u) im.src = u; else fail(); };
+  im.onerror = next; next();
+}
 // Gives up waiting after `ms`. (Deliberately not an AbortSignal: some viewers and wrappers cannot forward that to fetch.)
 function withTimeout(promise, ms) {
   return new Promise(function (resolve, reject) {
@@ -561,11 +579,14 @@ document.getElementById('stage').addEventListener('dblclick', function () {
       var m = document.createElement('div'); m.className = 'm'; m.textContent = 'Vidya News' + (dateOf(it) ? ' \u2022 ' + dateOf(it) : '');
       var h = document.createElement('div'); h.className = 'h'; h.textContent = it.t;
       t.appendChild(m); t.appendChild(h); a.appendChild(t);
-      if (it.i && it.i.indexOf(BASE) === 0) {
-        var im = document.createElement('img'); im.src = it.i; im.alt = ''; im.loading = 'lazy';
-        im.onerror = function () { im.style.display = 'none'; };
-        a.appendChild(im);
-      }
+      var box = document.createElement('div'); box.className = 'nimg';
+      var urls = picList([it.i, it.f]);
+      if (urls.length) {
+        var im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
+        box.appendChild(im);
+        loadPic(im, urls, function () { im.remove(); box.classList.add('ph'); });
+      } else box.classList.add('ph');
+      a.appendChild(box);
       list.appendChild(a);
     });
     list.scrollTop = 0; pos = 0; state = 'wait'; holdUntil = performance.now() + HOLD;
@@ -604,9 +625,9 @@ document.getElementById('stage').addEventListener('dblclick', function () {
       var media = p._embedded && p._embedded['wp:featuredmedia'] && p._embedded['wp:featuredmedia'][0], img = '';
       if (media && media.media_details) {
         var z = media.media_details.sizes || {};
-        img = (z.thumbnail && z.thumbnail.source_url) || media.source_url || '';
+        img = (z.thumbnail && z.thumbnail.source_url) || (z.medium && z.medium.source_url) || media.source_url || '';
       }
-      return { t: plain(p.title && p.title.rendered || ''), l: p.link, d: p.date, i: img };
+      return { t: plain(p.title && p.title.rendered || ''), l: p.link, d: p.date, i: img, f: media && media.source_url || '' };
     });
   }
   function load(url) {
@@ -623,7 +644,7 @@ document.getElementById('stage').addEventListener('dblclick', function () {
   function refresh() {
     why = '';
     vidyaFeed()
-      .then(function (o) { return o.news.map(function (x) { return { t: plain(x.t || ''), l: x.l, d: x.d, i: x.i }; }); })
+      .then(function (o) { return o.news.map(function (x) { return { t: plain(x.t || ''), l: x.l, d: x.d, i: x.i, f: x.f }; }); })
       .catch(function (e1) {                                                  // no Apps Script reply: ask the site directly (works when hosted online)
         why = e1 && e1.message || String(e1);
         return load(BASE + 'wp-json/wp/v2/posts?per_page=' + MAX_ITEMS + '&_embed=wp:featuredmedia')
@@ -694,9 +715,11 @@ document.getElementById('stage').addEventListener('dblclick', function () {
       if (shown >= COUNT || !it.l || it.l.indexOf(BASE) !== 0) return;         // only links to the news site
       var k = shown++;
       var a = document.createElement('a'); a.className = 'ev'; a.href = it.l; a.target = '_self';
-      if (it.i && it.i.indexOf(BASE) === 0) {
-        var im = document.createElement('img'); im.src = it.i; im.alt = ''; im.onerror = function () { im.style.display = 'none'; };
+      var urls = picList([it.i, it.f]);
+      if (urls.length) {
+        var im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
         a.appendChild(im);
+        loadPic(im, urls, function () { im.style.display = 'none'; });
       }
       var ch = document.createElement('span'); ch.className = 'chip'; ch.textContent = it.c || 'Featured'; a.appendChild(ch);
       var cap = document.createElement('div'); cap.className = 'cap';
@@ -739,7 +762,7 @@ document.getElementById('stage').addEventListener('dblclick', function () {
     vidyaFeed()
       .then(function (o) {
         if (!o.events || !o.events.length) throw new Error('no featured posts');
-        return o.events.map(function (x) { return { t: plain(x.t || ''), l: x.l, d: x.d, i: x.f || x.i, c: x.c ? plain(x.c) : 'Featured' }; });
+        return o.events.map(function (x) { return { t: plain(x.t || ''), l: x.l, d: x.d, i: x.f || x.i, f: x.i, c: x.c ? plain(x.c) : 'Featured' }; });
       })
       .catch(function (e1) {                                                  // no Apps Script reply: ask the site directly (works when hosted online)
         why = e1 && e1.message || String(e1);
