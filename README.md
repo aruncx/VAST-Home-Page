@@ -41,7 +41,8 @@
 | | Feature | What it does |
 |---|---|---|
 | 🕐 | **Digital clock** | Compact 12-hour digital clock with seconds, AM/PM and a blinking colon at the top right, so the poster space goes to useful content |
-| 📅 | **Styled date** | Large day number with month and year, and an italic weekday beside the Institution Code, auto-fitted so long names like "September" and "Wednesday" never overflow |
+| 📅 | **Styled date** | Large day number with the weekday and month/year stacked beside it, in the same style as the clock; long names like "WEDNESDAY" and "September" are auto-fitted so they never overflow |
+| 🏷️ | **Institution Code** | The red "INSTITUTION CODE VAS" badge sits at the top right, freeing the centre of the page |
 | 🏛️ | **Campus background** | The college photo stays fully visible; every widget is placed around it |
 | 🔍 | **Google search bar** | Type a word, press **Enter**, and Google shows the results. The cursor is already in the box when the page opens |
 | 🧭 | **9 quick-access icons** | One click to the Vidya **Website**, **Gmail**, **ERP**, **KTU Webpage**, **KTU Login**, **News**, **Library**, **College Bus** and **Moodle** |
@@ -75,8 +76,9 @@
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │  🏫 Vidya logo       Vidya Academy of Science & Technology   │
-│                       Address • Website • Phone     🕐 CLOCK │
-│  🔍 Google search     📅 Date | INSTITUTION CODE | Weekday   │
+│                       Address • Website • Phone  🏷️ CODE VAS │
+│                                                     🕐 CLOCK │
+│  🔍 Google search        📅 Date • Weekday • Month Year      │
 │  ┌────────────────┐  ┌────────────────────────────────────┐  │
 │  │ 📰 Vidya News  │  │ 🌐 ✉️ 🧩 🎓 🔐 📰 📚 🚌 📝  (9 icons)  │  │
 │  │  card 1        │  └────────────────────────────────────┘  │
@@ -152,7 +154,7 @@ chrome.exe --kiosk "file:///C:/Vidya/index.html"
 ## 📰 Auto-updating news
 
 - 📡 Reads the latest posts from the news site when the page opens, then every **30 minutes**.
-- 🌉 **Why it goes through the Apps Script:** a page opened as a file on a computer is not allowed by the browser to read another website directly. The Apps Script (the same web app as the counter) fetches the news on Google's servers and passes it on, so it works everywhere. It keeps the result for 10 minutes, so the news site is not asked too often.
+- 🌉 **Why it goes through the Apps Script:** a page opened as a file on a computer is not allowed by the browser to read another website directly. The Apps Script (the same web app as the counter) fetches the news on Google's servers and passes it on, so it works everywhere. It tries three ways in turn: the site's WordPress data, its RSS feed, and finally the news home page itself. It keeps the result for 10 minutes, so the news site is not asked too often.
 - 🟢 A small **Live** tag in the panel header shows the news was just loaded. **Saved copy** means it is showing the last news it could load.
 - 🖱️ Each card is clickable and opens the full article.
 - 📜 **Scrolling:** the panel loads up to the **40 latest posts** and scrolls through them slowly by itself. It pauses when you hover over it or touch it, you can scroll it yourself with the mouse wheel or touch, and after about 6 seconds without touching it, it carries on. At the end it waits a few seconds and goes back to the top. (People who prefer reduced motion in their system settings get no automatic scrolling.)
@@ -232,11 +234,15 @@ Google Sheets may have stored the date as a real date, which older script versio
 <details>
 <summary>📰 <b>News or Main Events says "Saved copy" instead of "Live"</b></summary>
 
-The page could not get fresh news, so it shows the last saved headlines.
+The page could not get fresh news, so it shows the last saved headlines. **Hold the mouse over the "Saved copy" tag** to read the reason.
 
-1. Check that `VIDYA_API` is filled in and the Apps Script was **deployed as a new version** after pasting the latest `counter-apps-script.gs`.
-2. In the Apps Script editor run `doGet` once (or open the web app URL with `?news=1` added). If a permissions window appears, click **Allow**.
-3. Open `<your web app URL>?news=1` in a browser. You should see news data. If it shows an `error`, the news site is blocking Google's server, so contact the site administrator.
+| Reason shown | What to do |
+|---|---|
+| "still the old version" | Paste the latest `counter-apps-script.gs` into Apps Script, then **Deploy → Manage deployments → ✏️ → New version → Deploy** |
+| "needs to be authorized" | In the Apps Script editor choose the function **`authorizeNews`**, click **Run**, then **Review permissions → Allow**. Deploy a new version afterwards |
+| "could not read the news site" | The news site is refusing Google's server. The text after the colon says which of the three ways failed (REST, RSS, home page). Ask the news site's administrator to allow it |
+
+You can also open `<your web app URL>?news=1` in a browser. You should see news data; if you see an `error` instead, that is the reason.
 </details>
 
 <details>
