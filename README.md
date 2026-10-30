@@ -17,24 +17,6 @@
 
 ---
 
-## 📑 Table of Contents
-
-- [✨ Features](#-features)
-- [🚀 Why use it?](#-why-use-it)
-- [🖼️ Layout](#️-layout)
-- [⚡ Quick Start](#-quick-start)
-- [🏫 Use it as the college login page](#-use-it-as-the-college-login-page)
-- [🔗 Quick-access links](#-quick-access-links)
-- [📰 Auto-updating news](#-auto-updating-news)
-- [⭐ Main Events slider](#-main-events-slider)
-- [📊 Shared visit counter](#-shared-visit-counter)
-- [🛠️ Customize](#️-customize)
-- [🩺 Troubleshooting](#-troubleshooting)
-- [🔒 Privacy & security](#-privacy--security)
-- [📁 Project structure](#-project-structure)
-- [👨‍🏫 Credits](#-credits)
-
----
 
 ## ✨ Features
 
@@ -71,85 +53,6 @@
 
 ---
 
-## 🖼️ Layout
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  🏫 Vidya logo       Vidya Academy of Science & Technology   │
-│                       Address • Website • Phone  🏷️ CODE VAS │
-│                                                     🕐 CLOCK │
-│  🔍 Google search        📅 Date • Weekday • Month Year      │
-│  ┌────────────────┐  ┌────────────────────────────────────┐  │
-│  │ 📰 Vidya News  │  │ 🌐 ✉️ 🧩 🎓 🔐 📰 📚 🚌 📝  (9 icons)  │  │
-│  │  card 1        │  └────────────────────────────────────┘  │
-│  │  card 2        │            🏛️ college building            │
-│  │  card 3 …      │                                          │
-│  └────────────────┘      ⭐ Main Events   📊 Page opens counter │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## ⚡ Quick Start
-
-1. ⬇️ **Download** the HTML file (you can rename it to `index.html`).
-2. 🖱️ **Double-click** it. It opens in your browser, and that's it.
-3. ✏️ *(Optional)* Set up the [shared counter](#-shared-visit-counter) so all computers count together.
-
-> 💡 **Tip:** The file is about 1 MB because the campus photo is built into it. That is what lets it work as a single file.
-
----
-
-## 🏫 Use it as the college login page
-
-**Option A: Set it as the browser start page (Chrome / Edge)**
-
-1. Copy the file to a fixed folder on the computer, for example `C:\Vidya\index.html`.
-2. Open **Settings → On startup → Open a specific page**.
-3. Add `file:///C:/Vidya/index.html`.
-
-**Option B: Host it online for free with GitHub Pages** 🌍
-
-1. Upload `index.html` to a GitHub repository.
-2. Go to **Settings → Pages**, choose your branch, and save.
-3. Use the `https://<your-name>.github.io/<repo>/` address as the start page on every computer. When you change the file, every computer gets the update.
-
-**Option C: Notice-board / lab display mode** 📺
-
-Open the page and **double-click** it for full screen. Or start Chrome in kiosk mode:
-
-```bash
-chrome.exe --kiosk "file:///C:/Vidya/index.html"
-```
-
----
-
-## 🔗 Quick-access links
-
-| Icon | Name | Opens |
-|:---:|---|---|
-| 🌐 | **Vidya Website** | https://www.vidyaacademy.ac.in/ |
-| ✉️ | **Vidya Gmail** | https://mail.google.com/a/vidyaacademy.ac.in |
-| 🧩 | **Vidya ERP** | https://erp.vidyaacademy.ac.in/ |
-| 🎓 | **KTU Webpage** | https://ktu.edu.in/ |
-| 🔐 | **KTU Login** | https://app.ktu.edu.in/login.htm |
-| 📰 | **Vidya News** | https://news.vidyaacademy.ac.in/ |
-| 📚 | **Library VAST** | https://library.vidyaacademy.ac.in/ |
-| 🚌 | **College Bus** | https://bus.vidyaacademy.ac.in/ |
-| 📝 | **Moodle VAST** | https://moodle.vidyaacademy.ac.in/ |
-
-**📱 Social media** (small icons under the main row):
-
-| Icon | Name | Opens |
-|:---:|---|---|
-| 📘 | **Facebook** | https://www.facebook.com/vidyatcr/ |
-| ▶️ | **YouTube** | https://www.youtube.com/@vidyaacademyofscienceandte6537 |
-| 📸 | **Instagram** | https://www.instagram.com/vidmediavast/ |
-| 💼 | **LinkedIn** | https://www.linkedin.com/school/vidyatcr |
-
-🔎 **Search bar:** the Google bar sends your text to `https://www.google.com/search?q=…`.
-
----
 
 ## 📰 Auto-updating news
 
@@ -167,8 +70,6 @@ chrome.exe --kiosk "file:///C:/Vidya/index.html"
 | 2560 × 1440 | 7 |
 | 3840 × 2160 | 11 |
 
-- 🛟 **Fallback chain:** Apps Script → the news site directly (works when the page is hosted online) → last saved news in the browser → built-in list of recent headlines.
-
 ---
 
 ## ⭐ Main Events slider
@@ -185,83 +86,6 @@ chrome.exe --kiosk "file:///C:/Vidya/index.html"
 
 The counter shows how many times the page was opened **Today, This Week (Mon–Sun), This Month and This Year**.
 
-| Mode | When | What you get |
-|---|---|---|
-| 💻 **Local** | `VIDYA_API` is empty | Each computer counts only its own opens |
-| ☁️ **Shared** | `VIDYA_API` is set | All computers add to one Google Sheet and show the same totals |
-
-### ☁️ Set up the shared counter (about 5 minutes, one time)
-
-1. 📄 Create a new **Google Sheet**, for example "Vidya Page Opens".
-2. 🧾 Open **Extensions → Apps Script**, paste the contents of [`counter-apps-script.gs`](counter-apps-script.gs), and save.
-3. 🚀 Click **Deploy → New deployment → Web app**:
-   - **Execute as:** Me
-   - **Who has access:** Anyone
-4. 📋 Copy the **Web app URL** (it ends with `/exec`).
-5. ✏️ In the HTML file, find `var VIDYA_API = '';` and paste the URL between the quotes. The same address also powers the live news (see below).
-6. 📦 Copy the updated file to your computers.
-
-> 🔁 **Changed the script later?** Use **Deploy → Manage deployments → ✏️ → New version → Deploy**. The URL stays the same.
-> 🔑 The first time you deploy a version that reads the news site, Google asks you to **review permissions** (it needs to fetch web pages). Click **Allow**.
-
-**How it works:** each page open adds 1 to today's row in the sheet. The page reads back the totals and shows them. It refreshes the numbers every 10 minutes. If a computer is offline, it counts locally for that visit instead of failing.
-
----
-
-## 🛠️ Customize
-
-| I want to… | Change this |
-|---|---|
-| 🔗 Change a link | The `href` of that icon in the `<nav class="dock">` section |
-| 🖼️ Change an icon image | The `data-fav` address on that icon |
-| ➕ Load more or fewer news posts | `MAX_ITEMS` in the news script and `NEWS_COUNT` at the top of `counter-apps-script.gs` (default 40) |
-| 🐢 Change the scroll speed | `SPEED` in the news script (pixels per second, default 20) |
-| ⏱️ Change news refresh time | The `30 * 60 * 1000` value (30 minutes) in the news script |
-| 🪟 Open links in a new tab | Change `target="_self"` to `target="_blank"` |
-| 🕒 Change the counter time zone | `TZ` at the top of `counter-apps-script.gs` (default `Asia/Kolkata`) |
-| 🏞️ Change the background | Replace the embedded campus image in the page |
-
----
-
-## 🩺 Troubleshooting
-
-<details>
-<summary>🔢 <b>The counter always shows 1</b></summary>
-
-Google Sheets may have stored the date as a real date, which older script versions could not match. Use the latest `counter-apps-script.gs` and **deploy a new version** (see above).
-</details>
-
-<details>
-<summary>📰 <b>News or Main Events says "Saved copy" instead of "Live"</b></summary>
-
-The page could not get fresh news, so it shows the last saved headlines. **Hold the mouse over the "Saved copy" tag** to read the reason.
-
-| Reason shown | What to do |
-|---|---|
-| "still the old version" | Paste the latest `counter-apps-script.gs` into Apps Script, then **Deploy → Manage deployments → ✏️ → New version → Deploy** |
-| "needs to be authorized" | In the Apps Script editor choose the function **`authorizeNews`**, click **Run**, then **Review permissions → Allow**. Deploy a new version afterwards |
-| "could not read the news site" | The news site is refusing Google's server. The text after the colon says which of the three ways failed (REST, RSS, home page). Ask the news site's administrator to allow it |
-
-You can also open `<your web app URL>?news=1` in a browser. You should see news data; if you see an `error` instead, that is the reason.
-</details>
-
-<details>
-<summary>🖼️ <b>An icon shows a drawn symbol instead of the site's logo</b></summary>
-
-That site has no icon at the expected address. Set `data-fav` for that icon to the site's real icon image (right-click the icon in the browser tab, or look in the page source).
-</details>
-
-<details>
-<summary>✉️ <b>Gmail link does not open the college mail</b></summary>
-
-Use the Google Workspace address `https://mail.google.com/a/vidyaacademy.ac.in`, as in this project.
-</details>
-
-<details>
-<summary>🔁 <b>The local counter restarted after moving the file</b></summary>
-
-Local counts are saved per browser and per file location. Use the **shared counter** to avoid this.
-</details>
 
 ---
 
@@ -271,19 +95,6 @@ Local counts are saved per browser and per file location. Use the **shared count
 - 🔐 Anyone who has the Apps Script web app URL could add to the count, so avoid posting it publicly if the numbers matter.
 - 🧼 News text is inserted as plain text, and only links to the college news site are accepted.
 - 🌐 Searches go to Google and are handled under Google's privacy policy.
-
----
-
-## 📁 Project structure
-
-```text
-📦 vidya-campus-live-home
- ┣ 📄 index.html              ← the whole page (clock, search, icons, news, counter)
- ┣ 📄 counter-apps-script.gs  ← Google Apps Script for the shared counter
- ┣ 📄 README.md               ← this file
- ┗ 📂 docs/
-    ┗ 🖼️ screenshot.png       ← add your screenshot here (optional)
-```
 
 ---
 
