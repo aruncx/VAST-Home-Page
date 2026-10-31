@@ -144,6 +144,8 @@
   #fsBtn svg { width:20px; height:20px; }
   body.is-full #fsBtn { opacity:0; }
   body.is-full #fsBtn:hover { opacity:.9; }
+  .live.warn { background:rgba(230,150,30,.35); color:#ffe2b0; }
+  .live.warn::before { background:#ffb347; box-shadow:0 0 6px #ffb347; }
 </style>
 </head>
 <body>
@@ -248,6 +250,13 @@
 // ---------- Google Apps Script web app: shared counter + live news ----------
 var VIDYA_API = 'https://script.google.com/macros/s/AKfycby15e2Sgt8qfY1ohyHb001lQhnS1FeUssBnKpIQE1CF3C_lkBzRBlsu_aC7kDxL8phc_Q/exec';
 var vidyaFeedP = null, vidyaFeedAt = 0;
+// Pictures the news website is known to use for its posts, so cards stay correct even if the live data lacks a picture.
+// (Filled from the built-in lists below: key = post address, thumb = small list picture, full = slider picture.)
+var vidyaPics = {};
+function vidyaKey(u) { return String(u || '').toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, ''); }
+function vidyaKnow(link, field, url) { var k = vidyaKey(link); (vidyaPics[k] = vidyaPics[k] || {})[field] = url; }
+function vidyaKnown(link) { return vidyaPics[vidyaKey(link)] || {}; }
+var vidyaInfo = null;      // what the Apps Script said about itself (source, picture statistics)
 // Pictures from the news site: accept the site itself and its image CDN, upgrade http to https, try several sizes in turn.
 function picOk(u) {
   try { var x = new URL(u); return x.protocol === 'https:' && (/(^|\.)vidyaacademy\.ac\.in$/.test(x.hostname) || /^i\d\.wp\.com$/.test(x.hostname)); }
@@ -282,6 +291,7 @@ function vidyaFeed() {
       var o; try { o = JSON.parse(txt); } catch (e) { throw new Error('the Apps Script did not return news data (it needs to be authorized and deployed as a new version)'); }
       if (o && o.day != null && !o.news) throw new Error('the Apps Script is still the old version (Deploy > Manage deployments > New version)');
       if (!o || !o.news || !o.news.length) throw new Error('the Apps Script could not read the news site: ' + ((o && o.error) || 'empty reply'));
+      vidyaInfo = { src: o.src, pics: o.pics, note: o.note };
       return o;
     });
   vidyaFeedP.catch(function () { vidyaFeedP = null; });
@@ -599,6 +609,7 @@ document.addEventListener('fullscreenchange', function () { document.body.classL
     { t: 'One-Day Workshop on Practical aspects of Civil Engineering (CE) by PIE Builders and Developers in association with the School of PIE', l: BASE + '2026/10/29/one-day-workshop-on-practical-aspects-of-civil-engineering-ce-by-pie-builders-and-developers-in-association-with-the-school-of-pie/', i: U + '2026/10/CE-4-150x150.png' },
     { t: 'NSS Orientation Programme 2026 for newly enrolled students \u2013 An introduction to NSS activities, values and opportunities for voluntary services', l: BASE + '2026/10/29/nss-orientation-programme-2026-for-newly-enrolled-students-an-introduction-to-nss-activities-values-and-opportunities-for-voluntary-services/', i: U + '2026/10/NSS-3-150x150.png' }
   ];
+  SNAPSHOT.forEach(function (x) { vidyaKnow(x.l, 'thumb', x.i); });
   var stage = document.getElementById('stage'), panel = document.querySelector('.news'),
       inner = document.getElementById('newsIn'), list = document.getElementById('newsList');
   var items = SNAPSHOT;
@@ -631,7 +642,7 @@ document.addEventListener('fullscreenchange', function () { document.body.classL
       var h = document.createElement('div'); h.className = 'h'; h.textContent = it.t;
       t.appendChild(m); t.appendChild(h); a.appendChild(t);
       var box = document.createElement('div'); box.className = 'nimg';
-      var urls = picList([it.i, it.f]);
+      var kn = vidyaKnown(it.l), urls = picList([kn.thumb, it.i, kn.full, it.f]);
       if (urls.length) {
         var im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
         box.appendChild(im);
@@ -684,9 +695,18 @@ document.addEventListener('fullscreenchange', function () { document.body.classL
   function load(url) {
     return withTimeout(fetch(url), 15000).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   }
-  function setLive(on, why) { var b = document.getElementById('newsLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); b.title = on ? 'Loaded from the news website just now' : 'Could not load live news: ' + (why || 'unknown reason'); } }
+  function setLive(on, why) {
+    var b = document.getElementById('newsLive'); if (!b) return;
+    var warn = on && vidyaInfo && vidyaInfo.pics === undefined;               // the Apps Script is an older version
+    b.textContent = on ? (warn ? 'Live \u2022 update script' : 'Live') : 'Saved copy';
+    b.className = 'live' + (on ? (warn ? ' on warn' : ' on') : '');
+    var info = vidyaInfo ? ' | source: ' + (vidyaInfo.src || '?') + (vidyaInfo.pics ? '; pictures from home page ' + vidyaInfo.pics.fromHome + ', from posts ' + vidyaInfo.pics.fromPost + ', missing ' + vidyaInfo.pics.missing : '') : '';
+    b.title = on ? (warn ? 'Live, but the Apps Script is an older version and cannot fill in missing pictures. Deploy the new counter-apps-script.gs as a new version.' : 'Loaded from the news website just now') + info
+                 : 'Could not load live news: ' + (why || 'unknown reason');
+  }
   function applyLive(got) {
-    got = got.filter(function (x) { return x.l && x.l.indexOf(BASE) === 0 && x.t; });
+    got = got.map(function (x) { x.l = String(x.l || '').replace(/^http:\/\//, 'https://'); return x; })
+             .filter(function (x) { return x.l && x.l.indexOf(BASE) === 0 && x.t; });
     if (!got.length) throw new Error('nothing usable');
     items = got; render(); setLive(true);
     try { localStorage.setItem(CACHE, JSON.stringify(got)); } catch (e) {}
@@ -739,6 +759,7 @@ document.addEventListener('fullscreenchange', function () { document.body.classL
     { t: 'Vidya Men\u2019s Kabaddi Team clinches Runner-Up Position in APJAKTU E-Zone Championship', l: BASE + '2026/09/17/vidya-mens-kabaddi-team-clinches-runner-up-position-in-apjaktu-e-zone-championship/', i: U + '2026/09/Men.png', d: '2026-09-17', c: 'Campus' },
     { t: 'Scholarship and Endowment Bestowal Function 2026', l: BASE + '2026/07/23/scholarship-and-endowment-bestowal-function-2026/', i: U + '2026/07/Scholarship-2026.png', d: '2026-07-23', c: 'Campus' }
   ];
+  SNAPSHOT.forEach(function (x) { vidyaKnow(x.l, 'full', x.i); });
   var box = document.getElementById('evStage'), dots = document.getElementById('evDots'), panel = document.getElementById('events');
   var items = SNAPSHOT, idx = 0, timer = null, paused = false;
 
@@ -766,7 +787,7 @@ document.addEventListener('fullscreenchange', function () { document.body.classL
       if (shown >= COUNT || !it.l || it.l.indexOf(BASE) !== 0) return;         // only links to the news site
       var k = shown++;
       var a = document.createElement('a'); a.className = 'ev'; a.href = it.l; a.target = '_self';
-      var urls = picList([it.i, it.f]);
+      var kn = vidyaKnown(it.l), urls = picList([kn.full, it.i, it.f, kn.thumb]);
       if (urls.length) {
         var im = document.createElement('img'); im.alt = ''; im.decoding = 'async';
         a.appendChild(im);
@@ -800,9 +821,18 @@ document.addEventListener('fullscreenchange', function () { document.body.classL
       return { t: plain(p.title && p.title.rendered || ''), l: p.link, i: m && m.source_url || '', d: p.date, c: cat };
     });
   }
-  function setLive(on, why) { var b = document.getElementById('evLive'); if (b) { b.textContent = on ? 'Live' : 'Saved copy'; b.className = 'live' + (on ? ' on' : ''); b.title = on ? 'Loaded from the news website just now' : 'Could not load live events: ' + (why || 'unknown reason'); } }
+  function setLive(on, why) {
+    var b = document.getElementById('evLive'); if (!b) return;
+    var warn = on && vidyaInfo && vidyaInfo.pics === undefined;               // the Apps Script is an older version
+    b.textContent = on ? (warn ? 'Live \u2022 update script' : 'Live') : 'Saved copy';
+    b.className = 'live' + (on ? (warn ? ' on warn' : ' on') : '');
+    var info = vidyaInfo ? ' | source: ' + (vidyaInfo.src || '?') + (vidyaInfo.pics ? '; pictures from home page ' + vidyaInfo.pics.fromHome + ', from posts ' + vidyaInfo.pics.fromPost + ', missing ' + vidyaInfo.pics.missing : '') : '';
+    b.title = on ? (warn ? 'Live, but the Apps Script is an older version and cannot fill in missing pictures. Deploy the new counter-apps-script.gs as a new version.' : 'Loaded from the news website just now') + info
+                 : 'Could not load live events: ' + (why || 'unknown reason');
+  }
   function applyLive(got) {
-    got = got.filter(function (x) { return x.l && x.l.indexOf(BASE) === 0 && x.t; });
+    got = got.map(function (x) { x.l = String(x.l || '').replace(/^http:\/\//, 'https://'); return x; })
+             .filter(function (x) { return x.l && x.l.indexOf(BASE) === 0 && x.t; });
     if (!got.length) throw new Error('nothing usable');
     items = got; render(); setLive(true);
     try { localStorage.setItem(CACHE, JSON.stringify(got)); } catch (e) {}
